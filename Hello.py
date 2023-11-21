@@ -5,7 +5,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-st.set_page_config(page_title="반갑습니다", initial_sidebar_state="expanded", layout="wide")
+st.set_page_config(
+    page_title="반갑습니다", 
+    initial_sidebar_state="expanded", 
+    layout="wide",
+    menu_items={})
 
 hide_streamlit_logo = """
     <style>
