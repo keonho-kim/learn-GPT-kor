@@ -80,28 +80,18 @@ with st.sidebar:
         """,
         unsafe_allow_html=True,
     )
-    model_option = st.selectbox("Select Model", models)
+    model_option = st.selectbox("모델 고르기", models)
     with st.expander(label="Max Words"):
-        if model_option in ["gpt-3.5-turbo-0613"]:
-            max_tokens = st.slider(
-                "Max Words",
-                min_value=5,
-                max_value=4000,
-                value=1000,
-                step=1,
-                label_visibility="hidden",
-                help="답변의 최대 길이를 설정합니다.",
-            )
-        else:
-            max_tokens = st.slider(
-                "Max Words",
-                min_value=5,
-                max_value=16000,
-                value=1000,
-                step=1,
-                label_visibility="hidden",
-                help="답변의 최대 길이를 설정합니다.",
-            )
+        max_tokens = st.slider(
+            "Max Words",
+            min_value=5,
+            max_value=32000 if model_option.endswith('32k') else 16000 if model_option.endswith('16k') else 4000,
+            value=1000,
+            step=1,
+            label_visibility="hidden",
+            help="답변의 최대 길이를 설정합니다.",
+        )
+        
     with st.expander(label="Temperature"):
         temperature = st.slider(
             "Temperature",

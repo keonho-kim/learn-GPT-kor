@@ -62,7 +62,8 @@ with explanation_1:
         그 때, 사람은 대화의 맥락을 파악하는 것을 통해서 '지금 가장 적절한 이야기'를 하는 것 입니다.
         <br>
         인공지능도 똑같습니다! 사람처럼 '지금 가장 적절한 대답'을 하기 위해서 맥락을 파악 할 필요가 있는 것 입니다.
-        <br><br>
+        <br>
+        (왼쪽에서 여전히 파라미터를 수정 할 수 있어요😄)
         """,
         unsafe_allow_html=True,
     )
@@ -85,29 +86,18 @@ with st.sidebar:
         """,
         unsafe_allow_html=True,
     )
-    model_option = st.selectbox("Select Model", models)
+    model_option = st.selectbox("모델 선택", models)
 
     with st.expander(label="Max Words"):
-        if model_option in ["gpt-3.5-turbo-0613"]:
-            max_tokens = st.slider(
-                "Max Words",
-                min_value=5,
-                max_value=4000,
-                value=1000,
-                step=1,
-                label_visibility="hidden",
-                help="답변의 최대 길이를 설정합니다.",
-            )
-        else:
-            max_tokens = st.slider(
-                "Max Words",
-                min_value=5,
-                max_value=16000,
-                value=1000,
-                step=1,
-                label_visibility="hidden",
-                help="답변의 최대 길이를 설정합니다.",
-            )
+        max_tokens = st.slider(
+            "Max Words",
+            min_value=5,
+            max_value=32000 if model_option.endswith('32k') else 16000 if model_option.endswith('16k') else 4000,
+            value=1000,
+            step=1,
+            label_visibility="hidden",
+            help="답변의 최대 길이를 설정합니다.",
+        )
 
     with st.expander(label="Temperature"):
         temperature = st.slider(
@@ -152,103 +142,101 @@ with st.sidebar:
 
 
 cli=OpenAI()
-ce, c1, ce, c2, c3 = st.columns([0.07, 3, 0.07, 6, 0.07])
 
-with c1:
-    with st.form("instruction_form", clear_on_submit=False):
-        background_prompt = st.text_area(
-            "배경지식/역할 부여하기",
-            height=250,
-            key="background_prompt",
-            disabled=False,
+with st.form("instruction_form", clear_on_submit=False):
+    background_prompt = st.text_area(
+        "배경지식/역할 부여하기",
+        height=200,
+        key="background_prompt",
+        disabled=False,
+    )
+
+    background_space = st.empty()
+    b_0, b_1, b_2 = st.columns([2, 2, 15])
+
+    with b_0:
+        background_clear = st.form_submit_button(label="초기화")
+
+    if background_clear:
+        background_space.write(
+            "<center> 초기화 되었습니다 🤖 </center>", 
+            unsafe_allow_html=True
         )
+        st.session_state["messages"] = []
 
-        background_space = st.empty()
-        b_0, b_1, b_2 = st.columns([10, 5, 4])
-
-        with b_1:
-            background_clear = st.form_submit_button(label="초기화")
-
-        if background_clear:
-            background_space.write(
-                "<center> 초기화 되었습니다 🤖 </center>", 
-                unsafe_allow_html=True
-            )
-            st.session_state["messages"] = []
-
-        with b_2:
-            submit = st.form_submit_button(label="입력")
-
-        if submit:
-            background_space.write(
-                "<center>정보가 입력되었습니다 🤖</center>",
-                unsafe_allow_html=True
-            )
-            st.session_state["messages"].append(
-                {"role": "system", "content": background_prompt}
-            )
-
-with c2:
-    running = False
-    with st.form("submit_form", clear_on_submit=True):
-        user_input = st.text_area("질문을 입력해주세요.", "", key="input", disabled=running)
-        p0, p1 = st.columns([20, 3])
-        with p1:
-            submit = st.form_submit_button(label="입력")
-
-    loading_text_space = st.empty()
+    with b_1:
+        submit = st.form_submit_button(label="입력")
 
     if submit:
-        with loading_text_space:
-            st.write("<center>답변을 생성하고 있습니다...⏰</center>", unsafe_allow_html=True)
-
-        for i in range(len(st.session_state["generated"])):
-            st.session_state["messages"].append(
-                {"role": "user", "content": st.session_state["past"][i]}
-            )
-            st.session_state["messages"].append(
-                {"role": "assistant", "content": st.session_state["generated"][i]}
-            )
-
-        st.session_state["messages"].append({"role": "user", "content": user_input})
-
-        running = True
-    
-        res = cli.chat.completions.create(
-            max_tokens=max_tokens,
-            temperature=temperature,
-            top_p=top_p,
-            presence_penalty=presence_penalty,
-            frequency_penalty=frequency_penalty,
-            stream=True,
-            messages=st.session_state["messages"],
-            model=model_option,
+        background_space.write(
+            "<center>정보가 입력되었습니다 🤖</center>",
+            unsafe_allow_html=True
+        )
+        st.session_state["messages"].append(
+            {"role": "system", "content": background_prompt}
         )
 
-        result = ""
+running = False
 
-        with st.empty():
-            for x in res:
-                if "content" in x.choices[0].delta.keys():
-                    result += x.choices[0].delta.content
+with st.form("submit_form", clear_on_submit=True):
+    user_input = st.text_area("질문을 입력해주세요.", "", key="input", disabled=running, height=150)
+    p0, p1 = st.columns([2, 20])
+    with p0:
+        submit = st.form_submit_button(label="입력")
 
-        st.session_state["past"].append(user_input)
-        st.session_state["generated"].append(result)
+loading_text_space = st.empty()
 
-    if st.session_state["generated"]:
-        for i in range(len(st.session_state["generated"]) - 1, -1, -1):
-            message(
-                st.session_state["past"][i],
-                avatar_style="fun-emoji",
-                is_user=True,
-                key=str(i) + "_user",
-            )
-            message(
-                st.session_state["generated"][i],
-                avatar_style="thumbs",
-                is_user=False,
-                key=str(i),
-                seed=123,
-            )
+if submit:
+    with loading_text_space:
+        st.write("<center>답변을 생성하고 있습니다...⏰</center>", unsafe_allow_html=True)
 
-        loading_text_space.write("")
+    for i in range(len(st.session_state["generated"])):
+        st.session_state["messages"].append(
+            {"role": "user", "content": st.session_state["past"][i]}
+        )
+        st.session_state["messages"].append(
+            {"role": "assistant", "content": st.session_state["generated"][i]}
+        )
+
+    st.session_state["messages"].append({"role": "user", "content": user_input})
+
+    running = True
+
+    res = cli.chat.completions.create(
+        max_tokens=max_tokens,
+        temperature=temperature,
+        top_p=top_p,
+        presence_penalty=presence_penalty,
+        frequency_penalty=frequency_penalty,
+        stream=True,
+        messages=st.session_state["messages"],
+        model=model_option,
+    )
+
+    result = ""
+
+    with st.empty():
+        for x in res:
+            if x.choices[0].delta.content:
+                result += x.choices[0].delta.content
+
+    st.session_state["past"].append(user_input)
+    st.session_state["generated"].append(result)
+
+if st.session_state["generated"]:
+    for i in range(len(st.session_state["generated"]) - 1, -1, -1):
+        message(
+            st.session_state["past"][i],
+            avatar_style="fun-emoji",
+            is_user=True,
+            key=str(i) + "_user",
+        )
+        message(
+            st.session_state["generated"][i],
+            avatar_style="thumbs",
+            is_user=False,
+            key=str(i),
+            seed=123,
+        )
+
+    loading_text_space.write("")

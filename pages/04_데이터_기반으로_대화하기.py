@@ -95,13 +95,13 @@ with st.sidebar:
 
     with st.expander(label="Max Words"):
         max_tokens = st.slider(
-            "Max Words",
-            min_value=5,
-            max_value=16000,
-            value=1000,
-            step=1,
-            label_visibility="hidden",
-            help="답변의 최대 길이를 설정합니다.",
+        "Max Words",
+        min_value=5,
+        max_value=32000 if model_option.endswith('32k') else 16000 if model_option.endswith('16k') else 4000,
+        value=1000,
+        step=1,
+        label_visibility="hidden",
+        help="답변의 최대 길이를 설정합니다.",
         )
     with st.expander(label="Temperature"):
         temperature = st.slider(
