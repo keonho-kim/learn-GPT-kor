@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import openai
 from openai import OpenAI
 
+
 load_dotenv()
 st.set_page_config(
     page_title="ChatGPT 분해하기",
@@ -11,9 +12,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
     menu_items={},
 )
-
-client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-
 
 hide_streamlit_style = """
             <style>
@@ -41,8 +39,9 @@ if "logined" not in st.session_state.keys() or not st.session_state["logined"]:
     st.stop()
 
 if st.session_state["api_type"] == "open_ai":
-    models = ["text-davinci-003", "gpt-3.5-turbo"]
+    models = ["text-davinci-003", "gpt-3.5-turbo", "gpt-4"]
 
+cli=OpenAI()
 
 with st.empty():
     with st.form(key="my_form"):
@@ -121,17 +120,11 @@ with st.empty():
             runtime_parameters["presence_penalty"] = presence_penalty
             runtime_parameters["frequency_penalty"] = frequency_penalty
             runtime_parameters["stream"] = True
-
-            if st.session_state["api_type"] == "azure":
-                runtime_parameters["engine"] = st.session_state["model2deployment"][
-                    model_option
-                ]
-            elif st.session_state["api_type"] == "open_ai":
-                runtime_parameters["model"] = model_option
+            runtime_parameters["model"] = model_option
 
             if model_option in ["text-davinci-003"]:
                 runtime_parameters["prompt"] = text_prompt
-                res = client.completions.create(**runtime_parameters)
+                res = cli.completions.create(**runtime_parameters)
                 result = ""
                 with st.empty():
                     for x in res:
@@ -145,7 +138,7 @@ with st.empty():
                     {"role": "user", "content": text_prompt},
                 ]
                 runtime_parameters["messages"] = messages
-                res = client.chat.completions.create(**runtime_parameters)
+                res = cli.chat.completions.create(**runtime_parameters)
                 result = ""
 
                 with st.empty():

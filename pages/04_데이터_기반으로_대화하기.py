@@ -5,9 +5,8 @@ from streamlit_chat import message
 import time
 from utils import util
 from langchain.llms import OpenAIChat
-from langchain.agents import create_pandas_dataframe_agent
 from langchain.memory import ConversationBufferMemory
-
+from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 load_dotenv()
 
 
@@ -31,9 +30,6 @@ if "logined" not in st.session_state.keys() or not st.session_state["logined"]:
     st.error("🚨 로그인을 먼저 해주세요")
     st.stop()
 
-if st.session_state["api_type"] == "open_ai":
-    models = ["gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k-0613"]
-    models = [model for model in models if model in st.session_state["model_list"]]
 
 if "file" not in st.session_state:
     st.session_state.file = ""
@@ -46,6 +42,7 @@ if "generated" not in st.session_state:
 if "data" not in st.session_state:
     st.session_state.data = None
 
+models = ["gpt-3.5-turbo", "gpt-3.5-turbo-16k", 'gpt-4', 'gpt-4-32k']
 
 hide_streamlit_style = """
             <style>

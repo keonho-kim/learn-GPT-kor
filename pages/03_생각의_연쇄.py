@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 import time
 
 load_dotenv()
-client = OpenAI()
 
 
 def clear_history():
@@ -24,8 +23,7 @@ if "logined" not in st.session_state.keys() or not st.session_state["logined"]:
     st.error("🚨 로그인을 먼저 해주세요")
     st.stop()
 
-if st.session_state["api_type"] == "open_ai":
-    models = ["gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k-0613"]
+models = ["gpt-3.5-turbo", "gpt-3.5-turbo-16k", 'gpt-4', 'gpt-4-32k']
 
 st.set_page_config(
     page_title="Chain-of-Thought",
@@ -145,6 +143,7 @@ with st.sidebar:
             help="질문에서 나온 단어들의 빈도를 기반으로 새로운 단어를 생성 할 지에 영향을 미칩니다. 높을수록 질문 문장에 사용된 단어를 사용합니다.",
         )
 
+client = OpenAI()
 
 submit_background, submit_cot = False, False
 background_prompt, cot_prompt = "", ""
@@ -168,8 +167,7 @@ with c1:
             background_clear = st.form_submit_button(label="초기화")
         if background_clear:
             background_space.write(
-                "<center> 초기화 되었습니다 🤖 </center>", unsafe_allow_html=Tru
-            e)
+                "<center> 초기화 되었습니다 🤖 </center>", unsafe_allow_html=True)
             if submit_cot and cot_prompt:
                 st.session_state["messages"] = [
                     {"role": "system", "content": cot_prompt}
@@ -181,8 +179,7 @@ with c1:
             submit_background = st.form_submit_button(label="입력")
         if submit_background:
             background_space.write(
-                "<center>정보가 입력되었습니다 🤖</center>", unsafe_allow_html=Tru
-            e)
+                "<center>정보가 입력되었습니다 🤖</center>", unsafe_allow_html=True)
             st.session_state["messages"].append(
                 {"role": "system", "content": background_prompt}
             )

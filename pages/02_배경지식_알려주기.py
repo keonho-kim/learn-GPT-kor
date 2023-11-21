@@ -4,6 +4,7 @@ from streamlit_chat import message
 from dotenv import load_dotenv
 import time
 
+
 load_dotenv()
 
 
@@ -23,8 +24,7 @@ if "logined" not in st.session_state.keys() or not st.session_state["logined"]:
     st.error("🚨 로그인을 먼저 해주세요")
     st.stop()
 
-if st.session_state["api_type"] == "open_ai":
-    models = ["gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k-0613"]
+models = ["gpt-3.5-turbo", "gpt-3.5-turbo-16k", 'gpt-4', 'gpt-4-32k']
 
 st.set_page_config(
     page_title="역할/배경지식을 주고 대화해보기",
@@ -151,8 +151,8 @@ with st.sidebar:
         )
 
 
+cli=OpenAI()
 ce, c1, ce, c2, c3 = st.columns([0.07, 3, 0.07, 6, 0.07])
-
 
 with c1:
     with st.form("instruction_form", clear_on_submit=False):
@@ -213,18 +213,17 @@ with c2:
         st.session_state["messages"].append({"role": "user", "content": user_input})
 
         running = True
-        cli=OpenAI(api_key=st.session_state['api_key'])
-        if st.session_state["api_type"] == "open_ai":
-            res = client.chat.completions.create(
-                max_tokens=max_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                presence_penalty=presence_penalty,
-                frequency_penalty=frequency_penalty,
-                stream=True,
-                messages=st.session_state["messages"],
-                model=model_option,
-            )
+    
+        res = cli.chat.completions.create(
+            max_tokens=max_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            presence_penalty=presence_penalty,
+            frequency_penalty=frequency_penalty,
+            stream=True,
+            messages=st.session_state["messages"],
+            model=model_option,
+        )
 
         result = ""
 
