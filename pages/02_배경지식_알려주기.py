@@ -1,7 +1,5 @@
 import streamlit as st
 from openai import OpenAI
-
-client = OpenAI()
 from streamlit_chat import message
 from dotenv import load_dotenv
 import time
@@ -173,7 +171,7 @@ with c1:
 
         if background_clear:
             background_space.write(
-                "<center> 초기화 되었습니다 🤖 </center>, 
+                "<center> 초기화 되었습니다 🤖 </center>", 
                 unsafe_allow_html=True
             )
             st.session_state["messages"] = []
@@ -215,7 +213,7 @@ with c2:
         st.session_state["messages"].append({"role": "user", "content": user_input})
 
         running = True
-
+        cli=OpenAI(api_key=st.session_state['api_key'])
         if st.session_state["api_type"] == "open_ai":
             res = client.chat.completions.create(
                 max_tokens=max_tokens,

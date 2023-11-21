@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 from dotenv import load_dotenv
 import openai
@@ -11,7 +12,7 @@ st.set_page_config(
     menu_items={},
 )
 
-client = OpenAI(api_key=st.session_state["api_key"])
+client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 
 hide_streamlit_style = """
