@@ -1,0 +1,10 @@
+python-dotenv
+charset_normalizer
+openpyxl
+pandas
+tabulate
+watchdog
+streamlit
+streamlit_chat
+openai
+langchain
