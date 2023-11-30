@@ -9,17 +9,11 @@ load_dotenv()
 
 
 def clear_history():
-    st.session_state["past"] = []
-    st.session_state["generated"] = []
-
-
-if "mesasges" not in st.session_state:
     st.session_state["messages"] = []
-if "past" not in st.session_state:
-    st.session_state["past"] = []
-if "generated" not in st.session_state:
-    st.session_state["generated"] = []
 
+if 'mesasges' not in st.session_state:
+    st.session_state["messages"] = []
+    
 if "logined" not in st.session_state.keys() or not st.session_state["logined"]:
     st.error("🚨 로그인을 먼저 해주세요")
     st.stop()
@@ -64,6 +58,9 @@ with explanation_1:
         인공지능도 똑같습니다! 사람처럼 '지금 가장 적절한 대답'을 하기 위해서 맥락을 파악 할 필요가 있는 것 입니다.
         <br>
         (왼쪽에서 여전히 파라미터를 수정 할 수 있어요😄)
+        <br>
+        <br>
+        <br>
         """,
         unsafe_allow_html=True,
     )
@@ -143,100 +140,64 @@ with st.sidebar:
 
 cli=OpenAI()
 
-with st.form("instruction_form", clear_on_submit=False):
-    background_prompt = st.text_area(
-        "배경지식/역할 부여하기",
-        height=200,
-        key="background_prompt",
-        disabled=False,
-    )
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-    background_space = st.empty()
-    b_0, b_1, b_2 = st.columns([2, 2, 15])
-
-    with b_0:
-        background_clear = st.form_submit_button(label="초기화")
-
-    if background_clear:
-        background_space.write(
-            "<center> 초기화 되었습니다 🤖 </center>", 
-            unsafe_allow_html=True
+with st.expander("역할 부여하기", expanded=True):
+    with st.form("instruction_form", clear_on_submit=False):
+        background_prompt = st.text_area(
+            "배경지식/역할을 입력해주세요",
+            height=100,
+            key="background_prompt",
+            disabled=False,
         )
-        st.session_state["messages"] = []
 
-    with b_1:
+        background_space = st.empty()
+
         submit = st.form_submit_button(label="입력")
 
-    if submit:
-        background_space.write(
-            "<center>정보가 입력되었습니다 🤖</center>",
-            unsafe_allow_html=True
-        )
-        st.session_state["messages"].append(
-            {"role": "system", "content": background_prompt}
-        )
+        if submit:
+            background_space.write(
+                "<center>정보가 입력되었습니다 🤖</center>",
+                unsafe_allow_html=True
+            )
+            st.session_state["messages"].append(
+                {"role": "system", "content": background_prompt}
+            )
+            
+        
+print(st.session_state['messages'])
 
-running = False
+if prompt := st.chat_input("무엇을 물어볼까요?"):
+    print(st.session_state['messages'])
+    st.session_state.messages.append({"role":"user", "content":prompt})
+    
+    with st.chat_message("user"):
+        st.markdown(prompt)
+        
+    with st.chat_message("assistant"):
+        message_placeholder = st.empty()
+        full_response = ""
+        for response in cli.chat.completions.create(
+            max_tokens=max_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            presence_penalty=presence_penalty,
+            frequency_penalty=frequency_penalty,
+            stream=True,
+            messages=[
+                {"role": m["role"], "content": m["content"]}
+                for m in st.session_state.messages
+                ],
+            model=model_option,
+        ):
+            
+            full_response += (response.choices[0].delta.content or "")
+            message_placeholder.markdown(full_response + "▌")
+        
+        message_placeholder.markdown(full_response)
 
-with st.form("submit_form", clear_on_submit=True):
-    user_input = st.text_area("질문을 입력해주세요.", "", key="input", disabled=running, height=150)
-    p0, p1 = st.columns([2, 20])
-    with p0:
-        submit = st.form_submit_button(label="입력")
-
-loading_text_space = st.empty()
-
-if submit:
-    with loading_text_space:
-        st.write("<center>답변을 생성하고 있습니다...⏰</center>", unsafe_allow_html=True)
-
-    for i in range(len(st.session_state["generated"])):
-        st.session_state["messages"].append(
-            {"role": "user", "content": st.session_state["past"][i]}
-        )
-        st.session_state["messages"].append(
-            {"role": "assistant", "content": st.session_state["generated"][i]}
-        )
-
-    st.session_state["messages"].append({"role": "user", "content": user_input})
-
-    running = True
-
-    res = cli.chat.completions.create(
-        max_tokens=max_tokens,
-        temperature=temperature,
-        top_p=top_p,
-        presence_penalty=presence_penalty,
-        frequency_penalty=frequency_penalty,
-        stream=True,
-        messages=st.session_state["messages"],
-        model=model_option,
-    )
-
-    result = ""
-
-    with st.empty():
-        for x in res:
-            if x.choices[0].delta.content:
-                result += x.choices[0].delta.content
-
-    st.session_state["past"].append(user_input)
-    st.session_state["generated"].append(result)
-
-if st.session_state["generated"]:
-    for i in range(len(st.session_state["generated"]) - 1, -1, -1):
-        message(
-            st.session_state["past"][i],
-            avatar_style="fun-emoji",
-            is_user=True,
-            key=str(i) + "_user",
-        )
-        message(
-            st.session_state["generated"][i],
-            avatar_style="thumbs",
-            is_user=False,
-            key=str(i),
-            seed=123,
-        )
-
-    loading_text_space.write("")
+    st.session_state.messages.append({"role": "assistant", "content": full_response})
+    
+    print(st.session_state['messages'])
