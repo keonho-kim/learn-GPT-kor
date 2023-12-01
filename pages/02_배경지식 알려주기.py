@@ -1,73 +1,27 @@
-import streamlit as st
 from openai import OpenAI
-from streamlit_chat import message
-from dotenv import load_dotenv
+import streamlit as st
 import time
 
 
-load_dotenv()
-
-
+# Define Functions 
 def clear_history():
     st.session_state["messages"] = []
 
-if 'mesasges' not in st.session_state:
-    st.session_state["messages"] = []
-    
+
 if "logined" not in st.session_state.keys() or not st.session_state["logined"]:
     st.error("🚨 로그인을 먼저 해주세요")
     st.stop()
 
-models = ["gpt-3.5-turbo", "gpt-3.5-turbo-16k", 'gpt-4', 'gpt-4-32k']
 
-st.set_page_config(
-    page_title="역할/배경지식을 주고 대화해보기",
-    layout="wide",
-    initial_sidebar_state="expanded",
-    menu_items={},
-)
+if "messages" not in st.session_state:
+    st.session_state['messages'] = []
 
-
-hide_streamlit_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            </style>
-            """
-
-
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-
-explanation_0, explanation_1, explanation_2 = st.columns([0.07, 10, 0.07])
-with explanation_1:
-    st.title("📝 ChatGPT에 역할/배경지식을 알려주기 ")
-    st.markdown(
-        """
-        <br>
-        컴퓨터에게 원하는 답변을 하도록 길들이는 방법 중 가장 유명한 것은 <b>배경지식 부여하기</b> 입니다.
-        <br>
-        흔히 <b>역할 부여 (Role-Playing)</b>라고 불리는 이 방식은 언어 모델이 <b>대화의 맥락</b>을 생성하게 합니다.
-        <br>
-        맥락을 파악한다는게 무슨 의미일까요? 사람이 대화하는 방식을 생각해보겠습니다.
-        <br>
-        적절한 대답을 하기 위해서 대화가 어느정도 진전 될 필요가 있지요?
-        <br>
-        그 때, 사람은 대화의 맥락을 파악하는 것을 통해서 '지금 가장 적절한 이야기'를 하는 것 입니다.
-        <br>
-        인공지능도 똑같습니다! 사람처럼 '지금 가장 적절한 대답'을 하기 위해서 맥락을 파악 할 필요가 있는 것 입니다.
-        <br>
-        (왼쪽에서 여전히 파라미터를 수정 할 수 있어요😄)
-        <br>
-        <br>
-        <br>
-        """,
-        unsafe_allow_html=True,
-    )
+st.title("역할 부여하기")
 
 st.sidebar.title("설정")
 
 with st.sidebar:
+
     history_clear = st.button(label="초기화", on_click=clear_history)
     history_text_space = st.empty()
 
@@ -77,19 +31,36 @@ with st.sidebar:
             time.sleep(3)
             history_text_space.write("")
 
-    st.write(
-        """
-        <font size=2>모델 설정</font>
-        """,
-        unsafe_allow_html=True,
-    )
+    with st.expander("역할 부여하기", expanded=True):
+        with st.form("instruction_form", clear_on_submit=False):
+            background_prompt = st.text_area(
+                "배경지식/역할",
+                height=100,
+                key="background_prompt",
+                disabled=False,
+                label_visibility='hidden'
+            )
+
+            background_space = st.empty()
+
+            submit = st.form_submit_button(label="입력")
+
+            if submit:
+                background_space.write(
+                    "<center>역할이 부여되었어요.</center>",
+                    unsafe_allow_html=True
+                )
+                st.session_state["messages"].append(
+                    {"role": "system", "content": background_prompt}
+                )
+    models = ["gpt-3.5-turbo", "gpt-3.5-turbo-16k", 'gpt-4', 'gpt-4-1106-preview']
     model_option = st.selectbox("모델 선택", models)
 
     with st.expander(label="Max Words"):
         max_tokens = st.slider(
             "Max Words",
             min_value=5,
-            max_value=32000 if model_option.endswith('32k') else 16000 if model_option.endswith('16k') else 4000,
+            max_value= 128000 if model_option == 'gpt-4-1106-preview' else 16000 if model_option.endswith('16k') else 4000,
             value=1000,
             step=1,
             label_visibility="hidden",
@@ -138,44 +109,20 @@ with st.sidebar:
         )
 
 
-cli=OpenAI()
+cli = OpenAI()
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-with st.expander("역할 부여하기", expanded=True):
-    with st.form("instruction_form", clear_on_submit=False):
-        background_prompt = st.text_area(
-            "배경지식/역할을 입력해주세요",
-            height=100,
-            key="background_prompt",
-            disabled=False,
-        )
-
-        background_space = st.empty()
-
-        submit = st.form_submit_button(label="입력")
-
-        if submit:
-            background_space.write(
-                "<center>정보가 입력되었습니다 🤖</center>",
-                unsafe_allow_html=True
-            )
-            st.session_state["messages"].append(
-                {"role": "system", "content": background_prompt}
-            )
-            
-        
-print(st.session_state['messages'])
-
-if prompt := st.chat_input("무엇을 물어볼까요?"):
-    print(st.session_state['messages'])
-    st.session_state.messages.append({"role":"user", "content":prompt})
-    
+if prompt := st.chat_input("이야기를 해볼까요?"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
-        
+
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         full_response = ""
@@ -192,12 +139,7 @@ if prompt := st.chat_input("무엇을 물어볼까요?"):
                 ],
             model=model_option,
         ):
-            
             full_response += (response.choices[0].delta.content or "")
             message_placeholder.markdown(full_response + "▌")
-        
         message_placeholder.markdown(full_response)
-
     st.session_state.messages.append({"role": "assistant", "content": full_response})
-    
-    print(st.session_state['messages'])

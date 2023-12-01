@@ -1,5 +1,5 @@
+import os
 import pandas as pd
-from dotenv import load_dotenv
 import streamlit as st
 from streamlit_chat import message
 import time
@@ -7,7 +7,6 @@ from utils import util
 from langchain.llms import OpenAIChat
 from langchain.memory import ConversationBufferMemory
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
-load_dotenv()
 
 
 def clear_history():
@@ -25,10 +24,11 @@ st.set_page_config(
     menu_items={},
 )
 
-
-if "logined" not in st.session_state.keys() or not st.session_state["logined"]:
+# LOGIN OPTION
+if "OPENAI_API_KEY" not in os.environ:
     st.error("🚨 로그인을 먼저 해주세요")
     st.stop()
+
 
 
 if "file" not in st.session_state:
@@ -42,7 +42,8 @@ if "generated" not in st.session_state:
 if "data" not in st.session_state:
     st.session_state.data = None
 
-models = ["gpt-3.5-turbo", "gpt-3.5-turbo-16k", 'gpt-4', 'gpt-4-32k']
+models = ["gpt-3.5-turbo", "gpt-3.5-turbo-16k", 'gpt-4', 'gpt-4-1106-preview']
+
 
 hide_streamlit_style = """
             <style>
@@ -103,6 +104,7 @@ with st.sidebar:
         label_visibility="hidden",
         help="답변의 최대 길이를 설정합니다.",
         )
+        
     with st.expander(label="Temperature"):
         temperature = st.slider(
             "Temperature",
@@ -113,6 +115,7 @@ with st.sidebar:
             label_visibility="hidden",
             help="답변의 무작위성을 결정합니다. 낮을수록 정형화된 답변을 생성하고, 높을수록 창의적인 답변을 생성합니다.",
         )
+        
     with st.expander(label="Top P"):
         top_p = st.slider(
             "Top P",
@@ -123,6 +126,7 @@ with st.sidebar:
             label_visibility="hidden",
             help="단어를 선택 할 때 자유도를 의미합니다. 클수록 다양한 단어를 선택합니다.",
         )
+        
     with st.expander(label="Presence Penalty"):
         presence_penalty = st.slider(
             "Presence Penalty",
@@ -133,6 +137,7 @@ with st.sidebar:
             label_visibility="hidden",
             help="질문에서 나온 단어들을 기반으로 새로운 단어를 생성 할 지에 영향을 미칩니다. 높을수록 새로운 주제에 대해 이야기합니다.",
         )
+        
     with st.expander(label="Frequency Penalty"):
         frequency_penalty = st.slider(
             "Frequency Penalty",
@@ -148,6 +153,7 @@ with st.sidebar:
 de0, d1, de1 = st.columns([0.07, 5, 0.07])
 
 with d1:
+    
     show_data = False
     data_session = st.form("Read Data", clear_on_submit=False)
     with data_session:
@@ -157,19 +163,15 @@ with d1:
             """,
             unsafe_allow_html=True,
         )
-        data_c0, data_center_margin, data_c1, data_right_margin = st.columns(
-            [25, 0.5, 2, 0.15]
+        
+        st.session_state.file = st.file_uploader(
+            ".CSV 또는 엑셀 파일을 입력해주세요.",
+            type=["csv", "xlsx", "xls"],
+            label_visibility="collapsed",
         )
-        with data_c0:
-            st.session_state.file = st.file_uploader(
-                ".CSV 또는 엑셀 파일을 입력해주세요.",
-                type=["csv", "xlsx", "xls"],
-                label_visibility="collapsed",
-            )
 
-        with data_c1:
-            st.write("<br>", unsafe_allow_html=True)
-            submit_data = st.form_submit_button(label="입력", use_container_width=True)
+        st.write("<br>", unsafe_allow_html=True)
+        submit_data = st.form_submit_button(label="입력", use_container_width=True)
 
     if submit_data:
         try:
@@ -188,13 +190,10 @@ with d1:
 question_form = st.form("question_form", clear_on_submit=True)
 with question_form:
     st.write("질문을 입력해주세요.")
-    ql, q1, qc, q2, qr = st.columns([0.3, 30, 0.5, 3, 0.7])
-    with q1:
-        user_input = st.text_area(
-            "질문을 입력해주세요.", "", key="input", label_visibility="collapsed", height=150
+    user_input = st.text_area(
+        "질문을 입력해주세요.", "", key="input", label_visibility="collapsed", height=150
         )
-    with q2:
-        submit = st.form_submit_button(label="입력")
+    submit = st.form_submit_button(label="입력")
 
 
 messages = []

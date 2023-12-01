@@ -5,7 +5,12 @@ import openai
 from openai import OpenAI
 
 
-load_dotenv()
+# LOGIN OPTION
+if "OPENAI_API_KEY" not in os.environ:
+    st.error("🚨 로그인을 먼저 해주세요")
+    st.stop()
+
+
 st.set_page_config(
     page_title="ChatGPT 분해하기",
     layout="wide",
@@ -34,12 +39,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-if "logined" not in st.session_state.keys() or not st.session_state["logined"]:
-    st.error("🚨 로그인을 먼저 해주세요")
-    st.stop()
-
-if st.session_state["api_type"] == "open_ai":
-    models = ["text-davinci-003", "gpt-3.5-turbo", "gpt-4"]
+models = ["text-davinci-003", "gpt-3.5-turbo", "gpt-4"]
 
 cli=OpenAI()
 
