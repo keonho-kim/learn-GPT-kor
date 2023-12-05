@@ -1,9 +1,6 @@
 import streamlit as st
 import os
 from openai import OpenAI
-from dotenv import load_dotenv
-
-load_dotenv()
 
 st.set_page_config(
     page_title="반갑습니다", 
@@ -24,7 +21,7 @@ st.markdown("# 환영합니다 👋")
 st.markdown(
     """
     <br><br>
-    GPT를 조금 깊히 공부하러 여기까지 방문하신 여러분을 환영합니다 😀\n
+    GPT와 친해지시기 위해 모인 여러분, 반갑습니다!😀\n
     <br>
     GPT는 정말 많은 가능성을 품고있지만, 아직은 연구자들, 그리고 개발자들에게만 자세한 사용법이 알려져있습니다.\n
     하지만, 개발자가 아닌 여러분도 그 속을 조금은 들여다 볼 수 있습니다.\n
