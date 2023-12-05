@@ -4,6 +4,7 @@ import streamlit as st
 from streamlit_chat import message
 import time
 from utils import util
+from openai import OpenAI
 from langchain.llms import OpenAIChat
 from langchain.memory import ConversationBufferMemory
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
@@ -99,7 +100,7 @@ with st.sidebar:
         "Max Words",
         min_value=5,
         max_value=32000 if model_option.endswith('32k') else 16000 if model_option.endswith('16k') else 4000,
-        value=1000,
+        value=2500,
         step=1,
         label_visibility="hidden",
         help="답변의 최대 길이를 설정합니다.",
@@ -197,14 +198,16 @@ with question_form:
 
 
 messages = []
+cli=OpenAI()
+
 if submit:
     loading_text_space = st.empty()
     loading_text_space.write(
         "<center>답변을 생성하고 있습니다...⏰</center>", unsafe_allow_html=True
     )
-
+    
     llm = OpenAIChat(
-        openai_api_key=st.session_state.api_key,
+        openai_api_key=os.environ["OPENAI_API_KEY"],
         temperature=temperature,
         max_tokens=max_tokens,
         top_p=top_p,
@@ -213,6 +216,7 @@ if submit:
         model=model_option,
     )
 
+    
     if st.session_state.data is not None:
         agent = create_pandas_dataframe_agent(
             llm=llm,
@@ -221,7 +225,7 @@ if submit:
             verbose=True,
             return_intermediate_steps=True,
             memory=ConversationBufferMemory(memory_key="chat_history"),
-            handle_parsing_errors="질문을 더  상세히 입력해주세요 😅",
+            handle_parsing_errors="질문을 더 상세히 입력해주세요 😅",
         )
 
         full_res = agent({"input": user_input})

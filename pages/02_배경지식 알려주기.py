@@ -7,7 +7,7 @@ import time
 def clear_history():
     st.session_state["messages"] = []
 
-
+# LOGIN OPTION
 if "logined" not in st.session_state.keys() or not st.session_state["logined"]:
     st.error("🚨 로그인을 먼저 해주세요")
     st.stop()
