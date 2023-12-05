@@ -1,14 +1,14 @@
+import time
+import re
 import os
+from utils import util
 import pandas as pd
 import streamlit as st
 from streamlit_chat import message
-import time
-from utils import util
-from openai import OpenAI
-from langchain.llms import OpenAIChat
+from langchain.chat_models import ChatOpenAI
+from langchain.agents.agent_types import AgentType
 from langchain.memory import ConversationBufferMemory
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
-
 
 def clear_history():
     st.session_state.past = []
@@ -56,24 +56,7 @@ hide_streamlit_style = """
 
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-explanation_0, explanation_1, explanation_2 = st.columns([0.07, 10, 0.07])
-with explanation_1:
-    st.title("🧾 데이터 기반으로 대화하기")
-    st.write(
-        """
-        <br>
-        언어 모델이 다양한 일을 할 수 있지만, 단순히 대화만 한다면 언어 모델의 진면목을 이끌어내지 못한 것입니다.
-        <br>
-        본질적으로 인공지능 모델은 새로운 데이터를 입력 받아 데이터에 기반해서 답변 해줄 수 있습니다.
-        <br>
-        물론, OpenAI 기본 대화 기능으로는 불가능하지만, 어떤 느낌인지 체험해보는 것만으로 가치가 있겠죠?
-        <br>
-        데이터를 기반으로 대화해봅시다!        
-        <br><br>
-        """,
-        unsafe_allow_html=True,
-    )
-
+st.title("🧾 데이터 기반으로 대화하기")
 
 st.sidebar.title("설정")
 
@@ -93,13 +76,15 @@ with st.sidebar:
         """,
         unsafe_allow_html=True,
     )
-    model_option = st.selectbox("Select Model", models)
+    model_option = st.selectbox("모델 선택", 
+                                options=models,
+                                index=models.index('gpt-4'))
 
     with st.expander(label="Max Words"):
         max_tokens = st.slider(
         "Max Words",
         min_value=5,
-        max_value=32000 if model_option.endswith('32k') else 16000 if model_option.endswith('16k') else 4000,
+        max_value=30000 if ('32k' in model_option) else 12000 if ('16k' in model_option) else 4000,
         value=2500,
         step=1,
         label_visibility="hidden",
@@ -197,23 +182,39 @@ with question_form:
     submit = st.form_submit_button(label="입력")
 
 
-messages = []
-cli=OpenAI()
+system_instruction = """
+        너는 지금부터 주어진 데이터를 분석하는 역할을 하게 될거야. 
+        너는 한국에서 일하고 있어. 항상 한국어로 답을 해야하.
+        고객들에게 아주 중요한 일이라서, 잘하는만큼 더 많은 팁을 받게 될거야. 
+        """
+
+messages = [
+    {
+        "role": "system", 
+        "content": system_instruction
+        }
+    ]
 
 if submit:
+    
+    messages.append({"role": "user", "content": user_input})
+    
     loading_text_space = st.empty()
     loading_text_space.write(
         "<center>답변을 생성하고 있습니다...⏰</center>", unsafe_allow_html=True
     )
     
-    llm = OpenAIChat(
+    llm = ChatOpenAI(
         openai_api_key=os.environ["OPENAI_API_KEY"],
+        model=model_option,
+        streaming=True,
         temperature=temperature,
         max_tokens=max_tokens,
-        top_p=top_p,
-        frequency_penalty=frequency_penalty,
-        presence_penalty=presence_penalty,
-        model=model_option,
+        model_kwargs={
+            'top_p' : top_p,
+            'frequency_penalty' : frequency_penalty,
+            'presence_penalty' : presence_penalty
+            }
     )
 
     
@@ -221,21 +222,39 @@ if submit:
         agent = create_pandas_dataframe_agent(
             llm=llm,
             df=st.session_state.data,
-            max_iterations=10,
+            max_iterations=5,
             verbose=True,
             return_intermediate_steps=True,
             memory=ConversationBufferMemory(memory_key="chat_history"),
-            handle_parsing_errors="질문을 더 상세히 입력해주세요 😅",
+            agent_type=AgentType.OPENAI_FUNCTIONS,
+            handle_parsing_errors=True
         )
 
-        full_res = agent({"input": user_input})
+        full_res = agent(
+            {
+                "input": user_input,
+                "context" : system_instruction
+             },
+            )
+        
         res = full_res["output"]
-        procedure_log = ""
-
-        for steps in full_res["intermediate_steps"]:
-            procedure_log += "-" * 5 + "\n" + steps[0][2] + "\n"
-            procedure_log = procedure_log.replace("python_repl_ast", "Python")
-
+        log = ""
+        
+        pattern_brace = r"\{([^}]*)\}"
+        for idx, steps in enumerate(full_res["intermediate_steps"]):
+            if len(full_res["intermediate_steps"]) > 0:
+                if len(full_res["intermediate_steps"]) > 1:
+                    log += f"Step {idx+1}:\n"
+                q = re.findall(pattern_brace, [__ for __ in steps[0]][2][1])[0]
+                q = q.split(': ')[-1]
+                first_str = q[0]
+                q = q.replace(first_str, '')
+                log += q
+                log += '\n\n\n'
+            else:
+                log += '코드 실행 기록 없음.\n\n'    
+            
+        
         for i in range(len(st.session_state["generated"])):
             messages.append({"role": "user", "content": st.session_state["past"][i]})
             messages.append(
@@ -245,15 +264,14 @@ if submit:
                 }
             )
 
-        messages.append({"role": "user", "content": user_input})
+        
 
         st.session_state.past.append(user_input)
         st.session_state.generated.append(
-            f"{'='*5}\nAI의 생각\n{'='*5}\n\n"
-            + procedure_log
-            + f"{'-'*5}\n\n"
-            + f"{'='*5}\n결과\n{'='*5}\n\n"
-            + res
+            "작업 기록\n\n\n"
+            + f"{log}"
+            + f"\n\n답변\n\n\n"
+            + f"{res}"
         )
 
         c_l, c_body, c_r = st.columns([2, 25, 2])
