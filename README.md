@@ -1,9 +1,6 @@
 # Learn GPT 
 
-> <B>Declaimer</B>
-> 본 프로젝트는 MIT License로, 무상으로 사용 가능합니다. 다만, <B>Issue에 사용한다는 글</B>을 남겨주시면 감사하겠습니다. 
-> (확인 즉시 Closed로 전환하도록 하겠습니다!)
-    
+Made with Streamlit, OpenAI API and LangChain
 
 ## Welcome !
 
